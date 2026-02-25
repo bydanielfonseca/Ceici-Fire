@@ -1,0 +1,9 @@
+{
+"name": "CEICI FIRE BY DANIEL FONSECA",
+"short_name": "CEICI FIRE",
+"start_url": "index.html",
+"display": "standalone",
+"background_color": "#1c1c1c",
+"theme_color": "#ff3c00",
+"icons": []
+}
