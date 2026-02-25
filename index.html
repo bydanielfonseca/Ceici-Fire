@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEICI FIRE</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+<h1>🔥 CEICI FIRE</h1>
+<p class="firma">By Daniel Fonseca</p>
+
+<div class="card">
+<select id="day">
+<option>Lunes</option><option>Martes</option><option>Miércoles</option>
+<option>Jueves</option><option>Viernes</option><option>Sábado</option><option>Domingo</option>
+</select>
+
+<input type="time" id="start">
+<input type="time" id="end">
+
+<button onclick="saveDay()">Guardar Día</button>
+</div>
+
+<div class="card">
+<h3>Resumen Semana</h3>
+<div id="weekData"></div>
+<p id="totalHours"></p>
+<p id="totalPay"></p>
+
+<button onclick="generateHoursPDF()">📄 PDF Horas</button>
+<button onclick="generateMoneyPDF()">💵 PDF Ganancias</button>
+<button onclick="closeWeek()">Cerrar Semana</button>
+</div>
+
+<div class="card">
+<h3>📚 Historial</h3>
+<div id="history"></div>
+</div>
+
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('service-worker.js');
+}
+
+const rate1=104;
+const rate2=157;
+
+let week=JSON.parse(localStorage.getItem("week"))||{};
+let history=JSON.parse(localStorage.getItem("history"))||[];
+
+function saveDay(){
+let d=document.getElementById("day").value;
+let s=document.getElementById("start").value;
+let e=document.getElementById("end").value;
+
+if(!s||!e){alert("Ingresa horario 24h");return;}
+
+let start=toMin(s);
+let end=toMin(e);
+if(end<start) end+=1440;
+
+let hrs=(end-start)/60;
+week[d]={start:s,end:e,hours:hrs};
+localStorage.setItem("week",JSON.stringify(week));
+render();
+}
+
+function toMin(t){
+let [h,m]=t.split(":");
+return parseInt(h)*60+parseInt(m);
+}
+
+function render(){
+let total=0;
+let html="";
+for(let d in week){
+html+=`${d}: ${week[d].start} - ${week[d].end} (${week[d].hours.toFixed(2)} hrs)<br>`;
+total+=week[d].hours;
+}
+document.getElementById("weekData").innerHTML=html;
+
+let normal=Math.min(total,9);
+let extra=Math.max(total-9,0);
+let pay=(normal*rate1)+(extra*rate2);
+
+document.getElementById("totalHours").innerHTML=`⏱ Total: ${total.toFixed(2)} hrs`;
+document.getElementById("totalPay").innerHTML=`🔥 Ganancia: $${pay.toFixed(2)} MXN`;
+}
+
+function closeWeek(){
+let total=0;
+for(let d in week){ total+=week[d].hours; }
+
+let normal=Math.min(total,9);
+let extra=Math.max(total-9,0);
+let pay=(normal*rate1)+(extra*rate2);
+
+history.push({hours:total,pay:pay,date:new Date().toLocaleDateString()});
+localStorage.setItem("history",JSON.stringify(history));
+localStorage.removeItem("week");
+week={};
+renderHistory();
+render();
+}
+
+function renderHistory(){
+let html="";
+history.forEach((w,i)=>{
+html+=`Semana ${i+1} (${w.date}) - ${w.hours.toFixed(2)} hrs - $${w.pay.toFixed(2)}<br>`;
+});
+document.getElementById("history").innerHTML=html;
+}
+
+function generateHoursPDF(){
+const { jsPDF } = window.jspdf;
+let doc=new jsPDF();
+doc.text("CEICI FIRE - Horas",20,20);
+let y=30;
+for(let d in week){
+doc.text(`${d}: ${week[d].start} - ${week[d].end}`,20,y);
+y+=10;
+}
+doc.save("Horas_CEICI_FIRE.pdf");
+}
+
+function generateMoneyPDF(){
+const { jsPDF } = window.jspdf;
+let doc=new jsPDF();
+doc.text("CEICI FIRE - Ganancias",20,20);
+let total=0;
+for(let d in week){ total+=week[d].hours; }
+let normal=Math.min(total,9);
+let extra=Math.max(total-9,0);
+let pay=(normal*rate1)+(extra*rate2);
+doc.text(`Total Horas: ${total.toFixed(2)}`,20,40);
+doc.text(`Total Ganado: $${pay.toFixed(2)} MXN`,20,50);
+doc.save("Ganancias_CEICI_FIRE.pdf");
+}
+
+render();
+renderHistory();
+</script>
+
+</body>
+</html>
